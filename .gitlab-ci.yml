@@ -15,4 +15,4 @@ build::puller:
     - cd $w
   artifacts:
     paths:
-      - /*.tar.gz
+      - *.tar.gz
