@@ -11,7 +11,7 @@ build::puller:
     - for i in $(ls); do  cd $i; gox -arch="amd64" -os="linux darwin" ./... ;  cd ../; done
     - tar zcf rules_docker_darwin_amd64.tar.gz $(find . -type f -name "*_darwin_amd64")
     - tar zcf rules_docker_linux_amd64.tar.gz $(find . -type f -name "*_linux_amd64")
-    - mv *.tar.bz2 $w
+    - mv *.tar.gz $w
     - cd $w
   artifacts:
     paths:
