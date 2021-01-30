@@ -4,5 +4,5 @@ build::puller:
   script:
     - go get github.com/mitchellh/gox
     - go get -d github.com/bazelbuild/rules_docker/container/go/cmd/puller
-    - gox github.com/bazelbuild/rules_docker/container/go/cmd/puller
+    - gox -osarch="amd64" -os="linux darwin" github.com/bazelbuild/rules_docker/container/go/cmd/puller
     - ls -la 
