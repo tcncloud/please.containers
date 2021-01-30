@@ -2,4 +2,6 @@ build::puller:
   image: golang:latest 
   stage: build
   script:
-    - go get github.com/bazelbuild/rules_docker/container/go/cmd/puller
+    - go get github.com/mitchellh/gox
+    - gox github.com/bazelbuild/rules_docker/container/go/cmd/puller
+    - ls -la 
