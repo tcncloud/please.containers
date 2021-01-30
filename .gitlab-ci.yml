@@ -22,7 +22,7 @@ deploy:
     stage: deploy
     image: ubuntu:20.04
     dependencies:
-        - build
+        - build::puller
     only:
         - tags
     script:
