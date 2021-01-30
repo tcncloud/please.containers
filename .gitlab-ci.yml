@@ -16,17 +16,19 @@ build::puller:
   artifacts:
     paths:
       - "*.tar.gz"
+    expire_in: 24 hours
 
 
 deploy:
-    stage: deploy
-    image: ubuntu:20.04
-    dependencies:
-        - build::puller
-    only:
-        - tags
-    script:
-        - apt update && apt install -y curl bzip2
-        - curl -Lo - https://github.com/tcnksm/ghr/releases/download/v0.13.0/ghr_v0.13.0_linux_amd64.tar.gz | tar zxf -
-        - mv ghr_v0.13.0_linux_amd64/ghr . && rm -rf ghr_v0.13.0_linux_amd64
-        - ./ghr -t ${GITHUB_TOKEN} -u tcncloud -r please.containers -c ${CI_COMMIT_SHA} -replace  ${CI_COMMIT_TAG} rules_docker_*.tar.gz
+  stage: deploy
+  image: ubuntu:20.04
+  dependencies:
+      - build::puller
+  only:
+      - tags
+  before_script:
+    - apt update && apt install -y curl bzip2
+    - curl -Lo - https://github.com/tcnksm/ghr/releases/download/v0.13.0/ghr_v0.13.0_linux_amd64.tar.gz | tar zxf -
+    - mv ghr_v0.13.0_linux_amd64/ghr . && rm -rf ghr_v0.13.0_linux_amd64
+  script:
+    - for i in rules_docker_*.tar.gz; do ./ghr -t ${GITHUB_TOKEN} -u tcncloud -r please.containers -c ${CI_COMMIT_SHA} -replace  ${CI_COMMIT_TAG} $i; done
