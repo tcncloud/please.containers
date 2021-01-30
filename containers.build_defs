@@ -1,0 +1,56 @@
+
+
+
+def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes:list = [], visibility:list = ['PUBLIC']):
+    return build_rule(
+        name = name, 
+        srcs = [
+            remote_file(
+                name = name, 
+                _tag = "download",
+                url = f"https://github.com/tcncloud/please.containers/releases/download/{version}/rules_docker_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}.tar.gz" if not url else url,
+                hashes = hashes,
+            )
+        ],
+        visibility = visibility,
+        cmd = ' && '.join([
+            f'mkdir {name}',
+            f'tar xf $SRCS -C {name}',
+        ]),
+        outs = [name],
+        entry_points = {
+            'create_image_config': f"{name}/create_image_config",
+            'digester': f'{name}/digester',
+            'extract_config': f'{name}/extract_config',
+            'flattener': f'{name}/flattener',
+            'join_layers': f'{name}/join_layers/join_layers_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}',
+            'loader': f'{name}/loader',
+            'puller': f'{name}/puller/puller_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}',
+            'pusher': f'{name}/pusher',
+            'update_deps': f'{name}/update_deps',
+            'zipper': f'{name}/zipper',
+        },
+        binary = True,
+    )
+
+
+
+
+def container_pull(name: str, image: str, tag:str='latest', host:str='index.docker.io', toolchain:str = "//examples:toolchain|puller"): 
+    return build_rule(
+        name = name, 
+        tools = [toolchain],
+        visibility = ['PUBLIC'],
+        cmd = " && ".join([
+            f"mkdir {name}",
+            f"$TOOLS -name {host}/{image}:{tag} -directory {name} -os linux -architecture amd64",
+        ]),
+        outs = [name],
+        building_description = "Pulling image ...",
+    )
+
+def container_create(name:str, tag:str, baseimage:str, toolchain:str = '//examples:toolchain|join_layers'):
+    return build_rule(
+        name = name, 
+        tools = [toolchain]
+    )
