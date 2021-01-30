@@ -9,10 +9,10 @@ build::puller:
     - git checkout v0.15.0
     - cd container/go/cmd
     - for i in $(ls); do  cd $i; gox -arch="amd64" -os="linux darwin" ./... ; ls -la; cd ../; done
-    - tar jcf rules_docker_darwin_amd64.tar.bz2 $(find . -type f -name "*_darwin_amd64")
-    - tar jcf rules_docker_linux_amd64.tar.bz2 $(find . -type f -name "*_linux_amd64")
+    - tar zcf rules_docker_darwin_amd64.tar.gz $(find . -type f -name "*_darwin_amd64")
+    - tar zcf rules_docker_linux_amd64.tar.gz $(find . -type f -name "*_linux_amd64")
     - mv *.tar.bz2 $w
     - cd $w
   artifacts:
     paths:
-      - /*.tar.bz2
+      - /*.tar.gz
