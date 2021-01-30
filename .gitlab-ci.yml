@@ -3,7 +3,7 @@ build::puller:
   stage: build
   script:
     - go get -v -t  github.com/bazelbuild/rules_docker/container/go/cmd/puller
-    - cd $GOPATH/src/github.com/bazelbuild/rules_Docker/container/go/cmd/puller
+    - cd $GOPATH/src/github.com/bazelbuild/rules_docker/container/go/cmd/puller
     - git checkout v0.15.0
     - gox -arch="amd64" -os="linux darwin" ./...
     - ls -la 
