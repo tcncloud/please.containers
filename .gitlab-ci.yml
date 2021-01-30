@@ -1,5 +1,5 @@
 build::puller:
-  image: golang:latest 
+  image: golang:1.15.7
   stage: build
   script:
     - w=$(pwd)
