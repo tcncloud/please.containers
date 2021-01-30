@@ -3,5 +3,6 @@ build::puller:
   stage: build
   script:
     - go get github.com/mitchellh/gox
+    - go get -d github.com/bazelbuild/rules_docker/container/go/cmd/puller
     - gox github.com/bazelbuild/rules_docker/container/go/cmd/puller
     - ls -la 
