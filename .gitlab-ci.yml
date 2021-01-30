@@ -2,7 +2,8 @@ build::puller:
   image: golang:latest 
   stage: build
   script:
-    - go get github.com/mitchellh/gox
-    - go get -d github.com/bazelbuild/rules_docker/container/go/cmd/puller@v0.15.0
+    - go mod init .
+    - go mod edit -require github.com/bazelbuild/rules_docker/container/go/cmd/puller@v0.15.0
+    - go get -v -t ./...
     - gox -arch="amd64" -os="linux darwin" github.com/bazelbuild/rules_docker/container/go/cmd/puller
     - ls -la 
