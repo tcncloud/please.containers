@@ -9,3 +9,9 @@ container_pull(
     image = 'ubuntu',
     tag = '20.04',
 )
+
+
+container_flattener(
+    name = 'ubuntu_flat',
+    baseimage = ":ubuntu"
+)

@@ -36,21 +36,43 @@ def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes
 
 
 
-def container_pull(name: str, image: str, tag:str='latest', host:str='index.docker.io', toolchain:str = "//examples:toolchain|puller"): 
+def container_pull(name: str, image: str, tag:str='latest', host:str='index.docker.io', toolchain:str = "//examples:toolchain"): 
     return build_rule(
         name = name, 
-        tools = [toolchain],
         visibility = ['PUBLIC'],
         cmd = " && ".join([
             f"mkdir {name}",
-            f"$TOOLS -name {host}/{image}:{tag} -directory {name} -os linux -architecture amd64",
+            f"$TOOLS_PULLER -name {host}/{image}:{tag} -directory {name} -os linux -architecture amd64",
+            f"cd {name}",
+            "for i in *.sha256; do mv $i ${i%.*}.tar.gz.sha256; done",
+            "for i in *.tar.gz; do gzip -dk $i; echo -n $(sha256sum ${i%.*} | cut -f1 -d' ') > ${i%.*}.sha256; done",
+
         ]),
         outs = [name],
         building_description = "Pulling image ...",
+        tools = {
+            'puller': [toolchain+"|puller"],
+        }
     )
 
-def container_create(name:str, tag:str, baseimage:str, toolchain:str = '//examples:toolchain|join_layers'):
+
+def container_flattener(name:str, baseimage:str, toolchain:str = '//examples:toolchain'):
     return build_rule(
-        name = name, 
-        tools = [toolchain]
+        name = name,
+        visibility = ['PUBLIC'],
+        outs = [name],
+        cmd = " && ".join([
+            f"mkdir {name}",
+            f"""$TOOLS_FLATTENER --config=$(location {baseimage})/config.json \
+            $(for i in $(location {baseimage})/*.tar; do echo -n \" --layer $i.gz,$i,$i.gz.sha256,$i.sha256 \"; done) \
+            --manifest=$(location {baseimage})/manifest.json --filesystem={name}/000.tar \
+            --metadata={name}/metadata.json
+            """
+        ]),
+        tools = {
+            'flattener': [toolchain+"|flattener"],
+        },
+        deps = [
+            baseimage,
+        ]
     )
