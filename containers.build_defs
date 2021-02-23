@@ -81,9 +81,9 @@ def container_flattener(name:str, baseimage:str, toolchain:str = '//examples:too
             #  '--filesystem=bazel-out/darwin-fastbuild/bin/testdata/flatten_with_tarball_base.tar' 
             #  '--metadata=bazel-out/darwin-fastbuild/bin/testdata/flatten_with_tarball_base.json')
             f"""$TOOLS_FLATTENER --config {name}/config \
-            --layer \
-            --tarball {name}/image.tar
-            
+            --tarball $(location {baseimage}) \
+            --filesystem {name}/image.tar \
+            --metadata {name}/metadata
             """,
             # f"""$TOOLS_FLATTENER --config=$(location {baseimage})/config.json \
             # $(for i in $(location {baseimage})/*.tar; do echo -n \" --layer $i.gz,$i,$i.gz.sha256,$i.sha256 \"; done) \
