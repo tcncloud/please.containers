@@ -33,9 +33,6 @@ def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes
         binary = True,
     )
 
-
-
-
 def container_pull(name: str, image: str, tag:str='latest', registry:str='index.docker.io', toolchain:str = "//examples:toolchain", visibility:list=[]): 
     return build_rule(
         name = name, 
@@ -46,12 +43,8 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
             f"cd {name}",
             "for i in *.sha256; do mv $i ${i%.*}.tar.gz.sha256; done",
             "for i in *.tar.gz; do gzip -dk $i; echo -n $(sha256sum ${i%.*} | cut -f1 -d' ') > ${i%.*}.sha256; done",
-            f"""$TOOLS_JOIN_LAYERS --output=image.tar --tag={name}:{tag}=config.json \
-            $(for i in *.tar; do echo -n \" --layer $i.gz,$i,$i.gz.sha256,$i.sha256 \"; done)  \
-            """,
-
         ]),
-        outs = [name+"/image.tar"],
+        outs = [ name ],
         building_description = "Pulling image ...",
         tools = {
             'puller': [toolchain+"|puller"],
@@ -59,46 +52,66 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
         }
     )
 
+def container_flattener(name:str, baseimage:str, toolchain:str = '//examples:toolchain', description:str = '', labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64'):
+    my_labels = ''
+    for l in labels.keys():
+        v = labels[l]
+        my_labels = f"{my_labels} -labels {l}={v}"
+    
+    my_environment = ''
+    for e in environment.keys():
+        v = environment[e]
+        my_environment = f"{my_environment} -env {e}={v}"
 
-def container_flattener(name:str, baseimage:str, toolchain:str = '//examples:toolchain'):
+    my_ports = ''
+    if len(ports) > 0:
+        my_ports = " -ports ".join(ports)
+    
+    my_entrypoint = ''
+    if len(entrypoint) > 0:
+        for e in entrypoint:
+            my_entrypoint = f"{my_entrypoint} -entrypoint {e}"
+    else:
+        my_entrypoint = "-nullEntryPoint"
+    
+    my_command = ''
+    if len(command) > 0:
+        for c in command:
+            my_command = f"{my_command} -command {c}"
+    else:
+        my_command = "-nullCmd"
+    
     return build_rule(
         name = name,
         visibility = ['PUBLIC'],
-        outs = [name],
+        outs = {
+            tar: name + "/flat.tar",
+            targz: name + "/flat.tar.gz",
+            sha: name + "/flat.tar.sha256",
+            shagz: name + "/flat.tar.gz.sha256",
+            manifest: name + "/flat.manifest.json",
+        },
         cmd = " && ".join([
             f"mkdir -p {name}",
-            # extract baseimage config 
-            f"$TOOLS_EXTRACT_CONFIG -imageTar $(location {baseimage}) -outputConfig config -outputManifest manifest",
-            f"echo -n $(sha256sum $(location {baseimage}) | cut -f1 -d' ') > layer.sha256",
-            f"""$TOOLS_CREATE_IMAGE_CONFIG -outputConfig {name}/config -outputManifest {name}/manifest \
-            -layerDigestFile layer.sha256 -baseConfig config -baseManifest manifest \
-            -architecture amd64 -operatingSystem linux""",
-            #  bazel-out/host/bin/container/go/cmd/flattener/flattener_/flattener 
-            #  '--config=bazel-out/darwin-fastbuild/bin/testdata/image_with_bar_and_baz.0.config' 
-            #  '--layer=bazel-out/darwin-fastbuild/bin/testdata/image_with_bar_and_baz-layer.tar.gz,bazel-out/darwin-fastbuild/bin/testdata/image_with_bar_and_baz-layer.tar,bazel-out/darwin-fastbuild/bin/testdata/image_with_bar_and_baz-layer.tar.gz.sha256,bazel-out/darwin-fastbuild/bin/testdata/image_with_bar_and_baz-layer.tar.sha256' 
-            #  '--tarball=bazel-out/darwin-fastbuild/bin/testdata/image_with_bar.tar'
-            #  '--manifest=bazel-out/darwin-fastbuild/bin/testdata/image_with_bar_and_baz.0.manifest' 
-            #  '--filesystem=bazel-out/darwin-fastbuild/bin/testdata/flatten_with_tarball_base.tar' 
-            #  '--metadata=bazel-out/darwin-fastbuild/bin/testdata/flatten_with_tarball_base.json')
-            f"""$TOOLS_FLATTENER --config {name}/config \
-            --tarball $(location {baseimage}) \
-            --filesystem {name}/image.tar \
-            --metadata {name}/metadata
-            """,
-            # f"""$TOOLS_FLATTENER --config=$(location {baseimage})/config.json \
-            # $(for i in $(location {baseimage})/*.tar; do echo -n \" --layer $i.gz,$i,$i.gz.sha256,$i.sha256 \"; done) \
-            # --manifest=$(location {baseimage})/manifest.json --filesystem={name}/000.tar \
-            # --metadata={name}/metadata.json
-            # """
+            "flatten_layers=\"\"",
+            f"workdir=$(location {baseimage})",
+            "for t in $(ls -1 $workdir/*.tar); do flatten_layers=\"${flatten_layers} -layer ${t}.gz,${t},${t}.gz.sha256,${t}.sha256\"; done",
+            f"$TOOLS_FLATTENER -config $workdir/config.json -manifest $workdir/manifest.json -filesystem {name}/flat.tar -metadata {name}/.combined.json ${flatten_layers}",
+            f"$TOOLS_ZIPPER -dst {name}/flat.tar.gz -src {name}/flat.tar",
+            f"echo -n $(sha256sum {name}/flat.tar | cut -f1 -d' ') > {name}/flat.tar.sha256",
+            f"echo -n $(sha256sum {name}/flat.tar.gz | cut -f1 -d' ') > {name}/flat.tar.gz.sha256",
+            f"$TOOLS_CREATE_IMAGE_CONFIG -outputConfig {name}/flat.config.json -outputManifest {name}/flat.manifest.json {my_labels} {my_environment} {my_ports} {my_entrypoint} {my_command} -creationTime $(date +%s) -layerDigestFile @{name}/flat.tar.sha256",
+            f"$TOOLS_DIGESTER -config {name}/flat.config.json -layer {name}/flat.tar.gz,{name}/flat.tar,{name}/flat.tar.gz.sha256,{name}/flat.tar.sha256 -manifest {name}/flat.manifest.json -format Docker -dst {name}/flat.digest",
         ]),
         tools = {
             'flattener': [toolchain+"|flattener"],
-            'extract_config': [toolchain + "|extract_config"],
-            'create_image_config': [toolchain + "|create_image_config"],
-            'zipper': [toolchain + "|zipper"],
-            'jarcat': [CONFIG.JARCAT_TOOL],
+            'zipper': [toolchain+"|zipper"],
+            'create_image_config': [toolchain+"|create_image_config"],
+            'digester': [toolchain+"|digester"],
         },
         deps = [
             baseimage,
         ]
     )
+
+    
