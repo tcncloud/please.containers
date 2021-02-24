@@ -49,10 +49,69 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
         tools = {
             'puller': [toolchain+"|puller"],
             'join_layers' : [toolchain + "|join_layers"],
-        }
+        },
     )
 
-def container_flattener(name:str, baseimage:str, toolchain:str = '//examples:toolchain', description:str = '', labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64'):
+def container_flattener(name:str, baseimage:str, toolchain:str = '//examples:toolchain', visibility:list=[]):
+    return build_rule(
+        name = name,
+        visibility = visibility,
+        outs = [ name ],
+        cmd = " && ".join([
+            f"mkdir -p {name}",
+            "flatten_layers=\"\"",
+            f"workdir=$(location {baseimage})",
+            "for t in $(ls -1 $workdir/*.tar); do flatten_layers=\"${flatten_layers} -layer ${t}.gz,${t},${t}.gz.sha256,${t}.sha256\"; done",
+            f"$TOOLS_FLATTENER -config $workdir/config.json -manifest $workdir/manifest.json -filesystem {name}/000.tar -metadata {name}/.combined.json ${flatten_layers}",
+            f"$TOOLS_ZIPPER -dst {name}/000.tar.gz -src {name}/000.tar",
+            f"echo -n $(sha256sum {name}/000.tar | cut -f1 -d' ') > {name}/000.tar.sha256",
+            f"echo -n $(sha256sum {name}/000.tar.gz | cut -f1 -d' ') > {name}/000.tar.gz.sha256",
+            f"rm -f {name}/.combined.json",
+        ]),
+        tools = {
+            'flattener': [toolchain+"|flattener"],
+            'zipper': [toolchain+"|zipper"],
+        },
+        deps = [
+            baseimage,
+        ],
+    )
+
+def container_inject(name:str, baseimage:str, srcs:list, destination:str, toolchain:str = '//examples:toolchain', owner:str = 'dinu', group:str = 'staff', perms:str = '0755', visibility:list=[]):
+    dst = destination.lstrip('/')
+    return build_rule(
+        name = name,
+        visibility = visibility,
+        outs = [ name ],
+        srcs = srcs,
+        cmd = " && ".join([
+            f"srcdir=$(location {baseimage})",
+            f"workdir={name}",
+            f"mkdir -p $workdir/.layer/{dst}",
+            f"mv $srcdir/* {name}",            
+            f"cp -v $SRCS $workdir/.layer/{dst}",
+            f"for f in $SRCS; do /usr/sbin/chown {owner}:{group} $workdir/.layer/{dst}/$(basename $f); chmod {perms} $workdir/.layer/{dst}/$(basename $f); done",
+            f"next_file=$(ls -1 $workdir/*.tar | wc -l | tr -d ' ')",
+            f"pad=000",
+            "layer_name=${pad:0:-${#next_file}}${next_file}",
+            "cwd=$(pwd)",
+            f"cd $workdir/.layer",
+            f"tar cf ../$layer_name.tar *",
+            "cd $cwd",
+            "$TOOLS_ZIPPER -src $workdir/$layer_name.tar -dst $workdir/$layer_name.tar.gz",
+            "echo -n $(sha256sum $workdir/$layer_name.tar | cut -f1 -d' ') > $workdir/$layer_name.tar.sha256",
+            "echo -n $(sha256sum $workdir/$layer_name.tar.gz | cut -f1 -d' ') > $workdir/$layer_name.tar.gz.sha256",
+            f"rm -rf $workdir/.layer",
+        ]),
+        tools = {
+            'zipper': [ toolchain+"|zipper" ],
+        },
+        deps = [
+            baseimage,
+        ]
+    )
+
+def container_config(name:str, srcs:list, toolchain:str = '//examples:toolchain', description:str = '', labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64'):
     my_labels = ''
     for l in labels.keys():
         v = labels[l]
@@ -80,38 +139,21 @@ def container_flattener(name:str, baseimage:str, toolchain:str = '//examples:too
             my_command = f"{my_command} -command {c}"
     else:
         my_command = "-nullCmd"
-    
+
+
     return build_rule(
         name = name,
-        visibility = ['PUBLIC'],
-        outs = {
-            tar: name + "/flat.tar",
-            targz: name + "/flat.tar.gz",
-            sha: name + "/flat.tar.sha256",
-            shagz: name + "/flat.tar.gz.sha256",
-            manifest: name + "/flat.manifest.json",
-        },
+        visibility = visibility,
+        output_dirs = [
+            name,
+        ],
         cmd = " && ".join([
-            f"mkdir -p {name}",
-            "flatten_layers=\"\"",
-            f"workdir=$(location {baseimage})",
-            "for t in $(ls -1 $workdir/*.tar); do flatten_layers=\"${flatten_layers} -layer ${t}.gz,${t},${t}.gz.sha256,${t}.sha256\"; done",
-            f"$TOOLS_FLATTENER -config $workdir/config.json -manifest $workdir/manifest.json -filesystem {name}/flat.tar -metadata {name}/.combined.json ${flatten_layers}",
-            f"$TOOLS_ZIPPER -dst {name}/flat.tar.gz -src {name}/flat.tar",
-            f"echo -n $(sha256sum {name}/flat.tar | cut -f1 -d' ') > {name}/flat.tar.sha256",
-            f"echo -n $(sha256sum {name}/flat.tar.gz | cut -f1 -d' ') > {name}/flat.tar.gz.sha256",
-            f"$TOOLS_CREATE_IMAGE_CONFIG -outputConfig {name}/flat.config.json -outputManifest {name}/flat.manifest.json {my_labels} {my_environment} {my_ports} {my_entrypoint} {my_command} -creationTime $(date +%s) -layerDigestFile @{name}/flat.tar.sha256",
-            f"$TOOLS_DIGESTER -config {name}/flat.config.json -layer {name}/flat.tar.gz,{name}/flat.tar,{name}/flat.tar.gz.sha256,{name}/flat.tar.sha256 -manifest {name}/flat.manifest.json -format Docker -dst {name}/flat.digest",
+            f"workdir=$SRCS",
+            f"$TOOLS_CREATE_IMAGE_CONFIG -outputConfig $workdir/flat.config.json -outputManifest $workdir/flat.manifest.json {my_labels} {my_environment} {my_ports} {my_entrypoint} {my_command} -creationTime $(date +%s) -layerDigestFile @$SRCS_SHA",
+            f"$TOOLS_DIGESTER -config $workdir/flat.config.json -layer $SRCS_TARGZ,$SRCS_TAR,$SRCS_SHAGZ,$SRCS_SHA -manifest $workdir/flat.manifest.json -format Docker -dst $workdir/flat.digest",
         ]),
         tools = {
-            'flattener': [toolchain+"|flattener"],
-            'zipper': [toolchain+"|zipper"],
             'create_image_config': [toolchain+"|create_image_config"],
             'digester': [toolchain+"|digester"],
         },
-        deps = [
-            baseimage,
-        ]
     )
-
-    

@@ -1,0 +1,26 @@
+def foobar(name:str, files:dict):
+    f = []
+    for k in files.keys():
+        args = files[k].split(':')
+        if len(args) == 1:
+            fp = files[k]
+            fm = '755'
+            fo, fg = [ 'root', 'root' ]
+        elif len(args) == 2:
+            fp, fm = args
+            fo, fg = [ 'root', 'root' ]
+        elif len(args) == 4:            
+            fp, fm, fo, fg = args            
+        else:
+            x = len(args)
+            fatal(f"files arguments mismatch (expected 1, 2 or 4, got {x})")
+        f += [ f"mkdir -p $(dirname {fp}) && cp {k} {fp} && chmod {fm} {fp} && chown {fo}:{fg} {fp}" ]
+
+    info(" && ".join(f))
+
+    return build_rule(
+        name = name,
+        cmd = " && ".join([
+            "echo" + " && ".join(f) + f" > {name}"
+        ])
+    )
