@@ -77,26 +77,37 @@ def container_flattener(name:str, baseimage:str, toolchain:str = '//examples:too
         ],
     )
 
-def container_inject(name:str, baseimage:str, srcs:list, destination:str, toolchain:str = '//examples:toolchain', owner:str = 'dinu', group:str = 'staff', perms:str = '0755', visibility:list=[]):
+def container_inject(name:str, baseimage:str, srcs:list, destination:str, timestamp:str, toolchain:str = '//examples:toolchain', owner:str = '0', group:str = '0', perms:str = '0755', visibility:list=[]):
     dst = destination.lstrip('/')
+    datefmt = '+%Y-%m-%dT%H:%M:%S%z'
+    
+    if CONFIG.HOSTOS == 'darwin':
+        tarcmd = '/usr/local/bin/gtar'
+        datecmd = 'date -j -f "%s" '
+    else:
+        tarcmd = '/bin/tar'
+        datecmd = 'date -d @'
+
     return build_rule(
         name = name,
         visibility = visibility,
         outs = [ name ],
         srcs = srcs,
         cmd = " && ".join([
+            f"which {tarcmd} || (echo This tool requires {tarcmd} - please install it via brew; exit 1)",
             f"srcdir=$(location {baseimage})",
             f"workdir={name}",
             f"mkdir -p $workdir/.layer/{dst}",
-            f"mv $srcdir/* {name}",            
+            f"cp $srcdir/* {name}",            
             f"cp -v $SRCS $workdir/.layer/{dst}",
-            f"for f in $SRCS; do /usr/sbin/chown {owner}:{group} $workdir/.layer/{dst}/$(basename $f); chmod {perms} $workdir/.layer/{dst}/$(basename $f); done",
+            f"for f in $SRCS; do chmod {perms} $workdir/.layer/{dst}/$(basename $f); done",
             f"next_file=$(ls -1 $workdir/*.tar | wc -l | tr -d ' ')",
             f"pad=000",
             "layer_name=${pad:0:-${#next_file}}${next_file}",
             "cwd=$(pwd)",
             f"cd $workdir/.layer",
-            f"tar cf ../$layer_name.tar *",
+            f"create_time=$({datecmd}{timestamp} {datefmt})",
+            f"{tarcmd} cf ../$layer_name.tar --owner {owner} --group {group} --mtime=${create_time} *",
             "cd $cwd",
             "$TOOLS_ZIPPER -src $workdir/$layer_name.tar -dst $workdir/$layer_name.tar.gz",
             "echo -n $(sha256sum $workdir/$layer_name.tar | cut -f1 -d' ') > $workdir/$layer_name.tar.sha256",
@@ -111,7 +122,7 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, toolch
         ]
     )
 
-def container_config(name:str, srcs:list, toolchain:str = '//examples:toolchain', description:str = '', labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64'):
+def container_config(name:str, baseimage:str, timestamp:str, toolchain:str = '//examples:toolchain', description:str = '', labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', visibility:list = ['PUBLIC']):
     my_labels = ''
     for l in labels.keys():
         v = labels[l]
@@ -124,7 +135,8 @@ def container_config(name:str, srcs:list, toolchain:str = '//examples:toolchain'
 
     my_ports = ''
     if len(ports) > 0:
-        my_ports = " -ports ".join(ports)
+        for p in ports:
+            my_ports = f"{my_ports} -ports {p}"
     
     my_entrypoint = ''
     if len(entrypoint) > 0:
@@ -139,21 +151,59 @@ def container_config(name:str, srcs:list, toolchain:str = '//examples:toolchain'
             my_command = f"{my_command} -command {c}"
     else:
         my_command = "-nullCmd"
-
-
+    
     return build_rule(
         name = name,
         visibility = visibility,
-        output_dirs = [
-            name,
-        ],
+        outs = [ name ],
         cmd = " && ".join([
-            f"workdir=$SRCS",
-            f"$TOOLS_CREATE_IMAGE_CONFIG -outputConfig $workdir/flat.config.json -outputManifest $workdir/flat.manifest.json {my_labels} {my_environment} {my_ports} {my_entrypoint} {my_command} -creationTime $(date +%s) -layerDigestFile @$SRCS_SHA",
-            f"$TOOLS_DIGESTER -config $workdir/flat.config.json -layer $SRCS_TARGZ,$SRCS_TAR,$SRCS_SHAGZ,$SRCS_SHA -manifest $workdir/flat.manifest.json -format Docker -dst $workdir/flat.digest",
+            f"workdir={name}",
+            f"srcdir=$(location {baseimage})",
+            f"mkdir -p $workdir && cp $srcdir/* $workdir",
+            "layers=()",
+            "layer_digests=()",
+            "for f in $(ls -1 $workdir/*.tar); do layers=( ${layers[@]} -layer $f.gz,$f,$f.gz.sha256,$f.sha256 ); layer_digests=( ${layer_digests[@]} -layerDigestFile @${f}.sha256 ); done",
+            f"$TOOLS_CREATE_IMAGE_CONFIG -outputConfig $workdir/flat.config.json -outputManifest $workdir/flat.manifest.json {my_labels} {my_environment} {my_ports} {my_entrypoint} {my_command} -creationTime {timestamp} ${layer_digests[@]}",
+            "$TOOLS_DIGESTER -config $workdir/flat.config.json ${layers[@]} -manifest $workdir/flat.manifest.json -format Docker -dst $workdir/flat.digest",
         ]),
         tools = {
             'create_image_config': [toolchain+"|create_image_config"],
             'digester': [toolchain+"|digester"],
+        },
+        deps = [
+            baseimage,
+        ]
+    )
+
+# CAVATS:
+# CLOUDSDK_CONFIG has to point to the $HOME/.config/gcloud directory, otherwise push will fail;
+# DOCKER_CONFIG has to point to a $HOME/.docker with configured docker credential/helper for gcr.io cases or some other auth completed already for private repos;
+# if the docker-credential-helper is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
+# TODO: find a way to remote the unnecessary output
+def container_push(name:str, baseimage:str, repository:str, tag:str = '', toolchain:str = '//examples:toolchain', visibility:list = ['PUBLIC']):
+    return build_rule(
+        name = name,
+        visibility = visibility,
+        cmd = " && ".join([
+            f"workdir=$(location {baseimage})",
+            f"mkdir -p {name}",
+            f"if [[ -z \"{tag}\" ]]; then tag=$(cat $workdir/flat.digest | cut -f2 -d: | fold -w 12 | head -n1); else tag={tag}; fi",
+            f"remote={repository}/{name}:${tag}",
+            "layers=()",
+            "for f in $(ls -1 $workdir/*.tar); do layers=( ${layers[@]} -layer $f.gz,$f,$f.gz.sha256,$f.sha256 ); done",
+            f"$TOOLS_PUSHER -config $workdir/flat.config.json -manifest $workdir/flat.manifest.json ${layers[@]} -format Docker -dst ${remote} > {name}/output 2>&1",
+        ]),
+        pass_env = [
+            "CLOUDSDK_CONFIG",
+            "DOCKER_CONFIG",
+        ],
+        outs = [
+            name + "/output",
+        ],
+        deps = [
+            baseimage,
+        ],
+        tools = {
+            'pusher': [ toolchain+"|pusher" ],
         },
     )
