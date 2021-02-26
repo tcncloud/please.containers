@@ -60,7 +60,7 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
         },
     )
 
-def container_flattener(name:str, baseimage:str, toolchain:str = '//examples:toolchain', visibility:list=[]):
+def container_flattener(name:str, baseimage:str, toolchain:str = ':toolchain', visibility:list=[]):
     return build_rule(
         name = name,
         visibility = visibility,
