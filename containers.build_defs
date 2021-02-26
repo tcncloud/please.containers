@@ -38,6 +38,9 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
         name = name, 
         visibility = visibility,
         cmd = " && ".join([
+            f"if [[ {registry} =~ gcr\.io && ! -e /usr/local/bin/docker-credential-gcloud ]]; then echo This target requires /usr/local/bin/docker-credential-gcloud; exit 1; fi",
+            f"if [[ {registry} =~ gcr\.io && -z $CLOUDSDK_CONFIG ]]; then echo This target requires CLOUDSDK_CONFIG to point to where gcloud keeps its configuration; exit 1; fi",
+            f"if [[ {registry} =~ gcr\.io && -z $DOCKER_CONFIG ]]; then echo This target requires DOCKER_CONFIG to point to where docker keeps its configuration; exit 1; fi",
             f"mkdir -p {name}",
             f"$TOOLS_PULLER -name {registry}/{image}:{tag} -directory {name} -os linux -architecture amd64",
             f"cd {name}",
@@ -46,6 +49,11 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
         ]),
         outs = [ name ],
         building_description = "Pulling image ...",
+        pass_env = [
+            "CLOUDSDK_CONFIG",
+            "DOCKER_CONFIG",
+            "CLOUDSDK_ACTIVE_CONFIG_NAME",
+        ],
         tools = {
             'puller': [toolchain+"|puller"],
             'join_layers' : [toolchain + "|join_layers"],
@@ -178,7 +186,7 @@ def container_config(name:str, baseimage:str, timestamp:str, toolchain:str = ':t
 # CAVATS:
 # CLOUDSDK_CONFIG has to point to the $HOME/.config/gcloud directory, otherwise push will fail;
 # DOCKER_CONFIG has to point to a $HOME/.docker with configured docker credential/helper for gcr.io cases or some other auth completed already for private repos;
-# if the docker-credential-helper is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
+# if the docker-credential-gcloud is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
 # TODO: find a way to remote the unnecessary output
 def container_push(name:str, baseimage:str, repository:str, tag:str = '', image_name:str = '', toolchain:str = ':toolchain', visibility:list = ['PUBLIC']):
     outfile = f"{name}_run.sh"
