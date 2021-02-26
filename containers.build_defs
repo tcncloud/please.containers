@@ -42,7 +42,7 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
             f"$TOOLS_PULLER -name {registry}/{image}:{tag} -directory {name} -os linux -architecture amd64",
             f"cd {name}",
             "for i in *.sha256; do mv $i ${i%.*}.tar.gz.sha256; done",
-            "for i in *.tar.gz; do gzip -dk $i; echo -n $(sha256sum ${i%.*} | cut -f1 -d' ') > ${i%.*}.sha256; done",
+            "for i in *.tar.gz; do gzip -dk $i; echo -n $($TOOL_SHA256 ${i%.*} | cut -f1 -d' ') > ${i%.*}.sha256; done",
         ]),
         outs = [ name ],
         building_description = "Pulling image ...",
@@ -64,8 +64,8 @@ def container_flattener(name:str, baseimage:str, toolchain:str = '//examples:too
             "for t in $(ls -1 $workdir/*.tar); do flatten_layers=\"${flatten_layers} -layer ${t}.gz,${t},${t}.gz.sha256,${t}.sha256\"; done",
             f"$TOOLS_FLATTENER -config $workdir/config.json -manifest $workdir/manifest.json -filesystem {name}/000.tar -metadata {name}/.combined.json ${flatten_layers}",
             f"$TOOLS_ZIPPER -dst {name}/000.tar.gz -src {name}/000.tar",
-            f"echo -n $(sha256sum {name}/000.tar | cut -f1 -d' ') > {name}/000.tar.sha256",
-            f"echo -n $(sha256sum {name}/000.tar.gz | cut -f1 -d' ') > {name}/000.tar.gz.sha256",
+            f"echo -n $($TOOL_SHA256 {name}/000.tar | cut -f1 -d' ') > {name}/000.tar.sha256",
+            f"echo -n $($TOOL_SHA256 {name}/000.tar.gz | cut -f1 -d' ') > {name}/000.tar.gz.sha256",
             f"rm -f {name}/.combined.json",
         ]),
         tools = {
@@ -82,10 +82,8 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, timest
     datefmt = '+%Y-%m-%dT%H:%M:%S%z'
     
     if CONFIG.HOSTOS == 'darwin':
-        tarcmd = '/usr/local/bin/gtar'
         datecmd = 'date -j -f "%s" '
     else:
-        tarcmd = '/bin/tar'
         datecmd = 'date -d @'
 
     return build_rule(
@@ -94,7 +92,7 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, timest
         outs = [ name ],
         srcs = srcs,
         cmd = " && ".join([
-            f"which {tarcmd} || (echo This tool requires {tarcmd} - please install it via brew; exit 1)",
+            f"which $TOOL_TAR || (echo This tool requires $TOOL_TAR - please install it via brew; exit 1)",
             f"srcdir=$(location {baseimage})",
             f"workdir={name}",
             f"mkdir -p $workdir/.layer/{dst}",
@@ -107,11 +105,11 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, timest
             "cwd=$(pwd)",
             f"cd $workdir/.layer",
             f"create_time=$({datecmd}{timestamp} {datefmt})",
-            f"{tarcmd} cf ../$layer_name.tar --owner {owner} --group {group} --mtime=${create_time} *",
+            f"$TOOL_TAR cf ../$layer_name.tar --owner {owner} --group {group} --mtime=${create_time} *",
             "cd $cwd",
             "$TOOLS_ZIPPER -src $workdir/$layer_name.tar -dst $workdir/$layer_name.tar.gz",
-            "echo -n $(sha256sum $workdir/$layer_name.tar | cut -f1 -d' ') > $workdir/$layer_name.tar.sha256",
-            "echo -n $(sha256sum $workdir/$layer_name.tar.gz | cut -f1 -d' ') > $workdir/$layer_name.tar.gz.sha256",
+            "echo -n $($TOOL_SHA256 $workdir/$layer_name.tar | cut -f1 -d' ') > $workdir/$layer_name.tar.sha256",
+            "echo -n $($TOOL_SHA256 $workdir/$layer_name.tar.gz | cut -f1 -d' ') > $workdir/$layer_name.tar.gz.sha256",
             f"rm -rf $workdir/.layer",
         ]),
         tools = {
