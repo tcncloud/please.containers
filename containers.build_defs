@@ -160,14 +160,10 @@ def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str =
             name
         ],
         cmd = " && ".join([
-            f"workdir={name}",
-            f"srcdir=$(location {baseimage})",
-            f"mkdir -p $workdir && cp $srcdir/* $workdir",
-            "layers=()",
-            "layer_digests=()",
-            "for f in $(ls -1 $workdir/*.tar); do layers=( ${layers[@]} -layer $f.gz,$f,$f.gz.sha256,$f.sha256 ); layer_digests=( ${layer_digests[@]} -layerDigestFile @${f}.sha256 ); done",
-            f"$TOOLS_CREATE_IMAGE_CONFIG -outputConfig $workdir/flat.config.json -outputManifest $workdir/flat.manifest.json {my_labels} {my_environment} {my_ports} {my_entrypoint} {my_command} -creationTime {timestamp} ${layer_digests[@]}",
-            "$TOOLS_DIGESTER -config $workdir/flat.config.json ${layers[@]} -manifest $workdir/flat.manifest.json -format Docker -dst $workdir/flat.digest",
+            f'mkdir -p {name}',
+            f'cp $(location {baseimage})/* {name}/',
+            f'$TOOLS_CREATE_IMAGE_CONFIG -outputConfig {name}/flat.config.json -outputManifest {name}/flat.manifest.json {my_labels} {my_environment} {my_ports} {my_entrypoint} {my_command} -creationTime {timestamp} $(for i in $(ls {name}/[0-9]+.tar | cut -f1 -d"."| sort -u); do echo "-layerDigestFile $i.tar.sha256"; done)',
+            f'$TOOLS_DIGESTER -config {name}/flat.config.json $(for i in $(ls {name}/[0-9]+.tar|cut -f1 -d"."|sort -u); do echo "-layer $i.tar.gz,$i.tar,$i.tar.gz.sha256,$i.tar.sha256" ;done) -manifest {name}/flat.manifest.json -format Docker -dst {name}/flat.digest'
         ]),
         tools = {
             'create_image_config': [toolchain+"|create_image_config"],
