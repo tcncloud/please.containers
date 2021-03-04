@@ -49,7 +49,6 @@ container_inject(
     baseimage = ":ubuntu_flat",
     srcs = [ ":inject" ],
     destination = "/opt/foo",
-    timestamp = '1614278660',
 )
 
 container_inject(
@@ -57,7 +56,6 @@ container_inject(
     baseimage = ":ubuntu_files",
     srcs = [ ":inject_two" ],
     destination = "/opt/bar",
-    timestamp = '1614278660',
 )
 
 # container_config runs after inject or flatten and creates the required metadata files for the container
@@ -92,7 +90,6 @@ container_config(
         "80",
         "443",
     ],
-    timestamp = '1614278660',
 )
 # CLOUDSDK_CONFIG has to point to the real $HOME/.config/gcloud directory, otherwise push will fail: please sets HOME to the current build dir
 # DOCKER_CONFIG has to point to a $HOME/.docker with configured docker credential/helper for gcr.io cases or some other auth completed already for private repos;
