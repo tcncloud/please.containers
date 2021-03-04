@@ -1,36 +1,38 @@
 
 
 
-def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes:list = [], visibility:list = ['PUBLIC']):
+def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes:list = [], visibility:list = ['PUBLIC'], use_internal:bool=False):
+    if use_internal:
+        sources = '//tools:tools'
+    else:
+        sources = remote_file(
+            name = 'name',
+            _tag = 'download',
+            url = f"https://github.com/tcncloud/please.containers/releases/download/{version}/tools-{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}.tar.gz" if not url else url,
+            hashes = hashes,
+        )
     return build_rule(
         name = name, 
         srcs = [
-            remote_file(
-                name = name, 
-                _tag = "download",
-                url = f"https://github.com/tcncloud/please.containers/releases/download/{version}/rules_docker_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}.tar.gz" if not url else url,
-                hashes = hashes,
-            )
+            '//tools:tools',
         ],
-        visibility = visibility,
-        cmd = ' && '.join([
-            f'mkdir {name}',
-            f'tar xf $SRCS -C {name}',
-        ]),
-        outs = [name],
-        entry_points = {
-            'create_image_config': f"{name}/create_image_config/create_image_config_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}",
-            'digester': f'{name}/digester/digester_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}',
-            'extract_config': f'{name}/extract_config/extract_config_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}',
-            'flattener': f'{name}/flattener/flattener_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}',
-            'join_layers': f'{name}/join_layers/join_layers_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}',
-            'loader': f'{name}/loader/loader_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}',
-            'puller': f'{name}/puller/puller_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}',
-            'pusher': f'{name}/pusher/pusher_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}',
-            'update_deps': f'{name}/update_deps/update_deps_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}',
-            'zipper': f'{name}/zipper/zipper_{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}',
-        },
         binary = True,
+        cmd = '$TOOLS_JARCAT x $SRCS',
+        outs = ['sha256', 'create_image_config', 'digester','extract_config','flattener','join_layers','loader','puller','pusher','update_deps','zipper'],
+        tools = {'jarcat': [CONFIG.JARCAT_TOOL]},
+        entry_points = {
+            'sha256':'sha256',
+            'create_image_config':'create_image_config',
+            'digester':'digester',
+            'extract_config':'extract_config',
+            'flattener':'flattener',
+            'join_layers':'join_layers',
+            'loader':'loader',
+            'puller':'puller',
+            'pusher':'pusher',
+            'update_deps':'update_deps',
+            'zipper':'zipper',
+        },
     )
 
 def container_pull(name: str, image: str, tag:str='latest', registry:str='index.docker.io', toolchain:str = ":toolchain", visibility:list=[]): 
@@ -45,7 +47,7 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
             f"$TOOLS_PULLER -name {registry}/{image}:{tag} -directory {name} -os linux -architecture amd64",
             f"cd {name}",
             "for i in *.sha256; do mv $i ${i%.*}.tar.gz.sha256; done",
-            "for i in *.tar.gz; do gzip -dk $i; echo -n $($TOOL_SHA256 ${i%.*} | cut -f1 -d' ') > ${i%.*}.sha256; done",
+            "for i in *.tar.gz; do gzip -dk $i; echo -n $($TOOLS_SHA256 ${i%.*} | cut -f1 -d' ') > ${i%.*}.sha256; done",
         ]),
         outs = [ name ],
         building_description = "Pulling image ...",
@@ -57,6 +59,7 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
         tools = {
             'puller': [toolchain+"|puller"],
             'join_layers' : [toolchain + "|join_layers"],
+            'sha256': [toolchain + '|sha256']
         },
     )
 
@@ -72,13 +75,14 @@ def container_flattener(name:str, baseimage:str, toolchain:str = ':toolchain', v
             "for t in $(ls -1 $workdir/*.tar); do flatten_layers=\"${flatten_layers} -layer ${t}.gz,${t},${t}.gz.sha256,${t}.sha256\"; done",
             f"$TOOLS_FLATTENER -config $workdir/config.json -manifest $workdir/manifest.json -filesystem {name}/000.tar -metadata {name}/.combined.json ${flatten_layers}",
             f"$TOOLS_ZIPPER -dst {name}/000.tar.gz -src {name}/000.tar",
-            f"echo -n $($TOOL_SHA256 {name}/000.tar | cut -f1 -d' ') > {name}/000.tar.sha256",
-            f"echo -n $($TOOL_SHA256 {name}/000.tar.gz | cut -f1 -d' ') > {name}/000.tar.gz.sha256",
+            f"echo -n $($TOOLS_SHA256 {name}/000.tar | cut -f1 -d' ') > {name}/000.tar.sha256",
+            f"echo -n $($TOOLS_SHA256 {name}/000.tar.gz | cut -f1 -d' ') > {name}/000.tar.gz.sha256",
             f"rm -f {name}/.combined.json",
         ]),
         tools = {
             'flattener': [toolchain+"|flattener"],
             'zipper': [toolchain+"|zipper"],
+            'sha256': [toolchain+'|sha256'],
         },
         deps = [
             baseimage,
@@ -100,28 +104,19 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, timest
         outs = [ name ],
         srcs = srcs,
         cmd = " && ".join([
-            f"which $TOOL_TAR || (echo This tool requires $TOOL_TAR - please install it via brew; exit 1)",
-            f"srcdir=$(location {baseimage})",
-            f"workdir={name}",
-            f"mkdir -p $workdir/.layer/{dst}",
-            f"cp $srcdir/* {name}",            
-            f"cp -v $SRCS $workdir/.layer/{dst}",
-            f"for f in $SRCS; do chmod {perms} $workdir/.layer/{dst}/$(basename $f); done",
-            f"next_file=$(ls -1 $workdir/*.tar | wc -l | tr -d ' ')",
-            f"pad=000",
-            "layer_name=${pad:0:-${#next_file}}${next_file}",
-            "cwd=$(pwd)",
-            f"cd $workdir/.layer",
-            f"create_time=$({datecmd}{timestamp} {datefmt})",
-            f"$TOOL_TAR cf ../$layer_name.tar --owner {owner} --group {group} --mtime=${create_time} *",
-            "cd $cwd",
-            "$TOOLS_ZIPPER -src $workdir/$layer_name.tar -dst $workdir/$layer_name.tar.gz",
-            "echo -n $($TOOL_SHA256 $workdir/$layer_name.tar | cut -f1 -d' ') > $workdir/$layer_name.tar.sha256",
-            "echo -n $($TOOL_SHA256 $workdir/$layer_name.tar.gz | cut -f1 -d' ') > $workdir/$layer_name.tar.gz.sha256",
-            f"rm -rf $workdir/.layer",
+            f'mkdir -p {name}',
+            f'last_layer=$(ls $(location {baseimage}) | cut -f1 -d"."| sort -u -r | head -1)',
+            f'cp $(location {baseimage})/* {name}/',
+            f'layer_name=$(printf "%03d" $(expr $last_layer + 1))',
+            f'$TOOLS_JARCAT t -o {name}/${layer_name}.tar',
+            f'$TOOLS_ZIPPER -src {name}/${layer_name}.tar -dst {name}/${layer_name}.tar.gz',
+            f'$TOOLS_SHA256 {name}/${layer_name}.tar > {name}/${layer_name}.tar.sha256',
+            f'$TOOLS_SHA256 {name}/${layer_name}.tar.gz > {name}/${layer_name}.tar.gz.sha256',
         ]),
         tools = {
             'zipper': [ toolchain+"|zipper" ],
+            'sha256': [ toolchain+'|sha256'],
+            'jarcat': [CONFIG.JARCAT_TOOL],
         },
         deps = [
             baseimage,

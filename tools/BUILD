@@ -1,6 +1,3 @@
-
-
-
 tarball(
     name = 'tools',
     srcs = [
@@ -15,5 +12,6 @@ tarball(
         '//tools/rules_docker:update_deps',
         '//tools/rules_docker:zipper',
         '//tools/sha256',
-    ]
+    ],
+    visibility =['PUBLIC']
 )

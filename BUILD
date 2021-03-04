@@ -6,10 +6,10 @@ filegroup(
   visibility = ['PUBLIC'],
 )
 
-filegroup(
-  name = "testing",
-  srcs = [
-    "testing.build_defs",
-  ],
-  visibility = ['PUBLIC'],
-)
+# filegroup(
+#   name = "testing",
+#   srcs = [
+#     "testing.build_defs",
+#   ],
+#   visibility = ['PUBLIC'],
+# )
