@@ -85,7 +85,7 @@ def container_flattener(name:str, baseimage:str, toolchain:str = ':toolchain', v
         ],
     )
 
-def container_inject(name:str, baseimage:str, srcs:list, destination:str, timestamp:str, toolchain:str = ':toolchain', owner:str = '0', group:str = '0', perms:str = '0755', visibility:list=[]):
+def container_inject(name:str, baseimage:str, srcs:list, destination:str, timestamp:str='0', toolchain:str = ':toolchain', owner:str = '0', group:str = '0', perms:str = '0755', visibility:list=[]):
     dst = destination.lstrip('/')
     datefmt = '+%Y-%m-%dT%H:%M:%S%z'
     
@@ -128,7 +128,7 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, timest
         ]
     )
 
-def container_config(name:str, baseimage:str, timestamp:str, toolchain:str = ':toolchain', description:str = '', labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', visibility:list = ['PUBLIC']):
+def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str = ':toolchain', description:str = '', labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', visibility:list = ['PUBLIC']):
     my_labels = ''
     for l in labels.keys():
         v = labels[l]
