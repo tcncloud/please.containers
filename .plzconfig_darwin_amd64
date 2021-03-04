@@ -1,3 +1,0 @@
-[buildenv]
-tool-tar = /usr/local/bin/gtar
-tool-sha256 = /usr/bin/shasum -a 256

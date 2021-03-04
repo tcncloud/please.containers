@@ -1,4 +1,0 @@
-[buildenv]
-tool-tar = /bin/tar
-tool-sha256 = /usr/bin/sha256sum
-
