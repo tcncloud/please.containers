@@ -19,6 +19,7 @@ def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes
         cmd = '$TOOLS_JARCAT x $SRCS',
         outs = ['sha256', 'create_image_config', 'digester','extract_config','flattener','join_layers','loader','puller','pusher','update_deps','zipper'],
         tools = {'jarcat': [CONFIG.JARCAT_TOOL]},
+        visibility = visibility,
         entry_points = {
             'sha256':'sha256',
             'create_image_config':'create_image_config',
