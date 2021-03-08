@@ -19,3 +19,5 @@ buildfilename = BUILD
 gitfunctions = True
 
 
+[go]
+gotool = //third_party/go:toolchain|go
