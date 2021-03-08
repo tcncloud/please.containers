@@ -32,7 +32,7 @@ def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes
         },
     )
 
-def container_pull(name: str, image: str, tag:str='latest', registry:str='index.docker.io', toolchain:str = ":toolchain", visibility:list=[], labels:list=[]): 
+def container_pull(name: str, image: str, tag:str='latest', registry:str='index.docker.io', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list=[], labels:list=[]): 
     return build_rule(
         name = name, 
         visibility = visibility,
@@ -61,7 +61,7 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
         },
     )
 
-def container_flattener(name:str, baseimage:str, toolchain:str = ':toolchain', visibility:list=[], labels:list=[]):
+def container_flattener(name:str, baseimage:str, toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list=[], labels:list=[]):
     return build_rule(
         name = name,
         visibility = visibility,
@@ -88,7 +88,7 @@ def container_flattener(name:str, baseimage:str, toolchain:str = ':toolchain', v
         ],
     )
 
-def container_inject(name:str, baseimage:str, srcs:list, destination:str, toolchain:str = ':toolchain', visibility:list=[], labels:list=[]):
+def container_inject(name:str, baseimage:str, srcs:list, destination:str, toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list=[], labels:list=[]):
     dst = destination.lstrip('/')
     datefmt = '+%Y-%m-%dT%H:%M:%S%z'
     
@@ -123,7 +123,7 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, toolch
         ]
     )
 
-def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str = ':toolchain', description:str = '', image_labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', visibility:list = ['PUBLIC'], labels:list=[]):
+def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, description:str = '', image_labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', visibility:list = ['PUBLIC'], labels:list=[]):
     my_labels = ''
     for l in image_labels.keys():
         v = image_labels[l]
@@ -180,7 +180,7 @@ def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str =
 # DOCKER_CONFIG has to point to a $HOME/.docker with configured docker credential/helper for gcr.io cases or some other auth completed already for private repos;
 # if the docker-credential-gcloud is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
 # TODO: find a way to remote the unnecessary output
-def container_push(name:str, baseimage:str, repository:str, tag:str = '', image_name:str = '', toolchain:str = ':toolchain', visibility:list = ['PUBLIC'], labels:list=[]):
+def container_push(name:str, baseimage:str, repository:str, tag:str = '', image_name:str = '', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list = ['PUBLIC'], labels:list=[]):
     outfile = f"{name}_run.sh"
     return build_rule(
         name = name,
