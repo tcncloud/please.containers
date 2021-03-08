@@ -88,8 +88,9 @@ container_config(
 )
 # CLOUDSDK_CONFIG has to point to the real $HOME/.config/gcloud directory, otherwise push will fail: please sets HOME to the current build dir
 # DOCKER_CONFIG has to point to a $HOME/.docker with configured docker credential/helper for gcr.io cases or some other auth completed already for private repos;
+# if the docker-credential-helper is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
 container_push(
     name = 'ubuntu_custom',
     baseimage = ":ubuntu_new",
-    # repository = "gcr.io/tcn-cloud-dev/m", # optional, if provided on the command line;
+    # repository = "gcr.io/tcn-cloud-dev/m", # required, if NOT provided on the command line;
 )
