@@ -1,6 +1,8 @@
-def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes:list = [], visibility:list = ['PUBLIC'], use_internal:bool=False):
+def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes:list = [], srcs:str = None, visibility:list = ['PUBLIC'], use_internal:bool=False):
     if use_internal:
         sources = '//tools:tools'
+    elif srcs:
+        sources = srcs
     else:
         sources = remote_file(
             name = 'name',
