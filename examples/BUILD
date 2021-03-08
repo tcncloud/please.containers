@@ -73,7 +73,7 @@ container_config(
     name = 'ubuntu_new',
     baseimage = ":ubuntu_files_two",
     description = "Foobar image",
-    labels = {
+    image_labels = {
         "version": "v1.2.3",
         "foo": "bar",
         "baz": "bla",

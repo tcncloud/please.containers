@@ -125,8 +125,8 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, toolch
 
 def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str = ':toolchain', description:str = '', image_labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', visibility:list = ['PUBLIC'], labels:list=[]):
     my_labels = ''
-    for l in labels.keys():
-        v = labels[l]
+    for l in image_labels.keys():
+        v = image_labels[l]
         my_labels = f"{my_labels} -labels {l}={v}"
     
     my_environment = ''
