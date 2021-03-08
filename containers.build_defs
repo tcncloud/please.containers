@@ -32,10 +32,11 @@ def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes
         },
     )
 
-def container_pull(name: str, image: str, tag:str='latest', registry:str='index.docker.io', toolchain:str = ":toolchain", visibility:list=[]): 
+def container_pull(name: str, image: str, tag:str='latest', registry:str='index.docker.io', toolchain:str = ":toolchain", visibility:list=[], labels:list=[]): 
     return build_rule(
         name = name, 
         visibility = visibility,
+        labels = labels,
         cmd = " && ".join([
             f"if [[ {registry} =~ gcr\.io && ! -e /usr/local/bin/docker-credential-gcloud ]]; then echo This target requires /usr/local/bin/docker-credential-gcloud; exit 1; fi",
             f"if [[ {registry} =~ gcr\.io && -z $CLOUDSDK_CONFIG ]]; then echo This target requires CLOUDSDK_CONFIG to point to where gcloud keeps its configuration; exit 1; fi",
@@ -56,14 +57,15 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
         tools = {
             'puller': [toolchain+"|puller"],
             'join_layers' : [toolchain + "|join_layers"],
-            'sha256': [toolchain + '|sha256']
+            'sha256': [toolchain + "|sha256"]
         },
     )
 
-def container_flattener(name:str, baseimage:str, toolchain:str = ':toolchain', visibility:list=[]):
+def container_flattener(name:str, baseimage:str, toolchain:str = ':toolchain', visibility:list=[], labels:list=[]):
     return build_rule(
         name = name,
         visibility = visibility,
+        labels = labels,
         outs = [ name ],
         cmd = " && ".join([
             f"mkdir -p {name}",
@@ -79,14 +81,14 @@ def container_flattener(name:str, baseimage:str, toolchain:str = ':toolchain', v
         tools = {
             'flattener': [toolchain+"|flattener"],
             'zipper': [toolchain+"|zipper"],
-            'sha256': [toolchain+'|sha256'],
+            'sha256': [toolchain+"|sha256"],
         },
         deps = [
             baseimage,
         ],
     )
 
-def container_inject(name:str, baseimage:str, srcs:list, destination:str, timestamp:str='0', toolchain:str = ':toolchain', owner:str = '0', group:str = '0', perms:str = '0755', visibility:list=[]):
+def container_inject(name:str, baseimage:str, srcs:list, destination:str, toolchain:str = ':toolchain', visibility:list=[], labels:list=[]):
     dst = destination.lstrip('/')
     datefmt = '+%Y-%m-%dT%H:%M:%S%z'
     
@@ -98,6 +100,7 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, timest
     return build_rule(
         name = name,
         visibility = visibility,
+        labels = labels,
         outs = [ name ],
         srcs = srcs,
         cmd = " && ".join([
@@ -113,14 +116,14 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, timest
         tools = {
             'zipper': [ toolchain+"|zipper" ],
             'sha256': [ toolchain+'|sha256'],
-            'jarcat': [CONFIG.JARCAT_TOOL],
+            'jarcat': [ CONFIG.JARCAT_TOOL ],
         },
         deps = [
             baseimage,
         ]
     )
 
-def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str = ':toolchain', description:str = '', labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', visibility:list = ['PUBLIC']):
+def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str = ':toolchain', description:str = '', image_labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', visibility:list = ['PUBLIC'], labels:list=[]):
     my_labels = ''
     for l in labels.keys():
         v = labels[l]
@@ -153,6 +156,7 @@ def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str =
     return build_rule(
         name = name,
         visibility = visibility,
+        labels = labels,
         output_dirs = [
             name
         ],
@@ -176,23 +180,25 @@ def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str =
 # DOCKER_CONFIG has to point to a $HOME/.docker with configured docker credential/helper for gcr.io cases or some other auth completed already for private repos;
 # if the docker-credential-gcloud is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
 # TODO: find a way to remote the unnecessary output
-def container_push(name:str, baseimage:str, repository:str, tag:str = '', image_name:str = '', toolchain:str = ':toolchain', visibility:list = ['PUBLIC']):
+def container_push(name:str, baseimage:str, repository:str, tag:str = '', image_name:str = '', toolchain:str = ':toolchain', visibility:list = ['PUBLIC'], labels:list=[]):
     outfile = f"{name}_run.sh"
     return build_rule(
         name = name,
         visibility = visibility,
+        labels = labels,
         cmd = " && ".join([
-            f"S=( $(out_locations {baseimage}) )",
+            f"S=\"$(out_locations {baseimage})\"",
             f"outfile={outfile}",
-            "for file in ${S[@]}; do if [[ $file =~ \.tar$ ]] ; then tarfiles=( ${tarfiles[@]} $file); elif [[ $file =~ flat\.config\.json$ ]]; then config_json=$file; elif [[ $file =~ flat\.manifest\.json ]]; then manifest_json=$file; elif [[ $file =~ flat\.digest$ ]]; then digest_file=$file; fi; done",
+            "tarfiles=\"\"",
+            "for file in ${S}; do if [[ $file =~ \.tar$ ]] ; then tarfiles=\"${tarfiles} $file\"; elif [[ $file =~ flat\.config\.json$ ]]; then config_json=$file; elif [[ $file =~ flat\.manifest\.json ]]; then manifest_json=$file; elif [[ $file =~ flat\.digest$ ]]; then digest_file=$file; fi; done",
             f"if [[ -z \"{image_name}\" ]]; then image_name={name}; else image_name={image_name}; fi",            
             "printf '#!/usr/bin/env bash\n' > $outfile",
-            f"printf 'tarfiles=( %s )\n' \"$( echo ${tarfiles[@]} )\" >> $outfile",
-            "printf 'layers=()\n' >> $outfile",
+            f"printf 'tarfiles=\" %s \"\n' \"$( echo ${tarfiles} )\" >> $outfile",
+            "printf 'layers=\"\"\n' >> $outfile",
             f"printf 'if [[ -z \"{tag}\" ]]; then tag=$(cat %s | cut -f2 -d: | fold -w 12 | head -n1); else tag=\"{tag}\"; fi\n' $digest_file >> $outfile",
-            "printf 'for f in ${tarfiles[@]}; do layers=( ${layers[@]} -layer $f.gz,$f,$f.gz.sha256,$f.sha256 ); done\n' >> $outfile",
-            f"printf '%s -config %s -manifest %s ${layers[@]} -format Docker -dst {repository}/%s:$tag\n' $TOOLS_PUSHER $config_json $manifest_json $image_name >> $outfile",
-            f"printf 'if [[ -n \"$CI_COMMIT_TAG\" ]]; then %s -config %s -manifest %s ${layers[@]} -format Docker -dst {repository}/%s:$CI_COMMIT_TAG; fi\n' $TOOLS_PUSHER $config_json $manifest_json $image_name >> $outfile",
+            "printf 'for f in ${tarfiles}; do layers=\"${layers} -layer $f.gz,$f,$f.gz.sha256,$f.sha256\"; done\n' >> $outfile",
+            f"printf '%s -config %s -manifest %s ${layers} -format Docker -dst {repository}/%s:$tag\n' $TOOLS_PUSHER $config_json $manifest_json $image_name >> $outfile",
+            f"printf 'if [[ -n \"$CI_COMMIT_TAG\" ]]; then %s -config %s -manifest %s ${layers} -format Docker -dst {repository}/%s:$CI_COMMIT_TAG; fi\n' $TOOLS_PUSHER $config_json $manifest_json $image_name >> $outfile",
         ]),
         outs = [
             outfile,
