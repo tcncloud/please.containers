@@ -183,7 +183,7 @@ def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str =
 # DOCKER_CONFIG has to point to a $HOME/.docker with configured docker credential/helper for gcr.io cases or some other auth completed already for private repos;
 # if the docker-credential-gcloud is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
 # TODO: find a way to remote the unnecessary output
-def container_push(name:str, baseimage:str, repository:str, tag:str = '', image_name:str = '', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list = ['PUBLIC'], labels:list=[]):
+def container_push(name:str, baseimage:str, repository:str = '', tag:str = '', image_name:str = '', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list = ['PUBLIC'], labels:list=[]):
     outfile = f"{name}_run.sh"
     return build_rule(
         name = name,
