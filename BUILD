@@ -15,7 +15,7 @@ tarball(
   srcs = [
     '//:toolchain',
   ],
-  out = f'tools-{CONFIG.HOSTOS}_{CONFIG.HOSTARCH} .tar.gz',
+  out = f'tools-{CONFIG.HOSTOS}_{CONFIG.HOSTARCH}.tar.gz',
   gzip = True,
   flatten = True,
   visibility = ['PUBLIC'],
