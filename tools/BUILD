@@ -13,5 +13,7 @@ tarball(
         '//tools/rules_docker:zipper',
         '//tools/sha256',
     ],
+    out = f'tools-{CONFIG.OS}_{CONFIG.ARCH}.tar.gz',
+    flatten = True,
     visibility =['PUBLIC']
 )

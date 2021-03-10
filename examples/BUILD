@@ -1,6 +1,6 @@
 subinclude('//:containers')
 
-container_toolchain(name = 'toolchain', use_internal=True)
+container_toolchain(name = 'toolchain', use_internal=False)
 
 filegroup(
     name = 'inject',
