@@ -1,4 +1,4 @@
-def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes:list = [], srcs:str = None, visibility:list = ['PUBLIC'], use_internal:bool=False):
+def container_toolchain(name:str, url:str = None, version:str = "v0.0.2", hashes:list = [], srcs:str = None, visibility:list = ['PUBLIC'], use_internal:bool=False):
     if use_internal:
         sources = '//tools:tools'
     elif srcs:
@@ -12,9 +12,7 @@ def container_toolchain(name:str, url:str = None, version:str = "v0.0.1", hashes
         )
     return build_rule(
         name = name, 
-        srcs = [
-            '//tools:tools',
-        ],
+        srcs = [ sources ],
         binary = True,
         cmd = '$TOOLS_JARCAT x $SRCS',
         outs = ['sha256', 'create_image_config', 'digester','extract_config','flattener','join_layers','loader','puller','pusher','update_deps','zipper'],
