@@ -1,4 +1,0 @@
-[cache]
-httpurl = http://please-cache/cache
-httpwriteable = false 
-httptimeout = 90
