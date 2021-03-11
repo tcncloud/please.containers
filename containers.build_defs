@@ -202,7 +202,6 @@ def container_push(name:str, baseimage:str, repository:str = '', tag:str = '', i
             f"printf 'if [[ -z \"{tag}\" ]]; then tag=$(cat %s | cut -f2 -d: | fold -w 12 | head -n1); else tag=\"{tag}\"; fi\n' $digest_file >> $outfile",
             "printf 'for f in ${tarfiles}; do layers=\"${layers} -layer $f.gz,$f,$f.gz.sha256,$f.sha256\"; done\n' >> $outfile",
             f"printf '%s -config %s -manifest %s ${layers} -format Docker -dst $repository/%s:$tag\n' $TOOLS_PUSHER $config_json $manifest_json $image_name >> $outfile",
-            f"printf 'if [[ -n \"$CI_COMMIT_TAG\" ]]; then %s -config %s -manifest %s ${layers} -format Docker -dst $repository/%s:$CI_COMMIT_TAG; fi\n' $TOOLS_PUSHER $config_json $manifest_json $image_name >> $outfile",
         ]),
         outs = [
             outfile,
