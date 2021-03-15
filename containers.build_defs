@@ -223,8 +223,8 @@ def container_push(name:str, baseimage:str, repository:str = CONFIG.DEFAULT_DOCK
             "printf 'layers=\"\"\n' >> $outfile",
             "printf 'for f in ${tarfiles}; do layers=\"${layers} -layer $f.gz,$f,$f.gz.sha256,$f.sha256\"; done\n' >> $outfile",
             f"printf '%s -config %s -manifest %s ${layers} -format Docker -dst %s\n' $TOOLS_PUSHER $config_json $manifest_json $tag >> $outfile",
-            f"if [[ -n {tag} ]]; then printf '%s -config %s -manifest %s ${layers} -format Docker -dst %s\n' $TOOLS_PUSHER $config_json $manifest_json ${tag%%:*}:{tag} >> $outfile; fi",
-            f"if [[ -n ${CI_COMMIT_TAG:-\"\"} ]]; then printf '%s -config %s -manifest %s ${layers} -format Docker -dst %s\n' $TOOLS_PUSHER $config_json $manifest_json ${tag%%:*}:${CI_COMMIT_TAG} >> $outfile; fi",
+            f"if [[ -n \"{tag}\" ]]; then printf '%s -config %s -manifest %s ${layers} -format Docker -dst %s\n' $TOOLS_PUSHER $config_json $manifest_json ${tag%%:*}:{tag} >> $outfile; fi",
+            f"if [[ -n \"${CI_COMMIT_TAG:-\"\"}\" ]]; then printf '%s -config %s -manifest %s ${layers} -format Docker -dst %s\n' $TOOLS_PUSHER $config_json $manifest_json ${tag%%:*}:${CI_COMMIT_TAG} >> $outfile; fi",
         ]),
         outs = [
             outfile,
