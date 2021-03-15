@@ -63,7 +63,6 @@ container_inject(
 # entrypoint: []            what's the entrypoint of the image (optional)
 # command: []               what's the command of the image (optional)
 # ports: []                 what to EXPOSE
-# timestamp: <unix ts>      required: see container_inject
 container_config(
     name = 'ubuntu_new',
     baseimage = ":ubuntu_files_two",
@@ -88,9 +87,11 @@ container_config(
 )
 # CLOUDSDK_CONFIG has to point to the real $HOME/.config/gcloud directory, otherwise push will fail: please sets HOME to the current build dir
 # DOCKER_CONFIG has to point to a $HOME/.docker with configured docker credential/helper for gcr.io cases or some other auth completed already for private repos;
-# if the docker-credential-helper is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
+# if the docker-credential-gcloud is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
 container_push(
     name = 'ubuntu_custom',
     baseimage = ":ubuntu_new",
-    # repository = "gcr.io/tcn-cloud-dev/m", # required, if NOT provided on the command line;
+    # image_name = "foo",                    # optional, if you want image name to be different from the rule name
+    tag = "foobarv2",                        # optional, will use the image digest (default) an $CI_COMMIT_TAG if defined; this one will the the 3rd
+    # repository = "gcr.io/tcn-cloud-dev/m", # optional, will use CONFIG.DEFAULT_DOCKER_REPO as default;
 )

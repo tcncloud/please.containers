@@ -10,7 +10,7 @@ passenv = CI_COMMIT_TAG
 timeout = 600
 
 [buildconfig]
-default-docker-repo = gcr.io/tcn-cloud-dev
+default-docker-repo = gcr.io/tcn-cloud-dev/m
 please-containers-toolchain = //examples:toolchain
 
 [parse]
