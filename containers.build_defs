@@ -109,7 +109,7 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, toolch
             f'last_layer=$(ls -1 $(location {baseimage}) | cut -f1 -d"."| sort -u | head -1)',
             f'cp $(location {baseimage})/* {name}/',
             f'layer_name=$(printf "%03d" $(expr $last_layer + 1))',
-            f'$TOOLS_JARCAT t -o {name}/${layer_name}.tar --prefix={dst}',
+            f'$TOOLS_JARCAT t -o {name}/${layer_name}.tar --flatten --prefix={dst}',
             f'$TOOLS_ZIPPER -src {name}/${layer_name}.tar -dst {name}/${layer_name}.tar.gz',
             f'$TOOLS_SHA256 {name}/${layer_name}.tar > {name}/${layer_name}.tar.sha256',
             f'$TOOLS_SHA256 {name}/${layer_name}.tar.gz > {name}/${layer_name}.tar.gz.sha256',
