@@ -208,7 +208,7 @@ def container_push(name:str, baseimage:str, repository:str = CONFIG.DEFAULT_DOCK
     return build_rule(
         name = name,
         visibility = visibility,
-        labels = labels,
+        labels = labels + [ 'container-push' ],
         srcs = [ fqn ],
         cmd = " && ".join([
             f"S=\"$(out_locations {baseimage})\"",
