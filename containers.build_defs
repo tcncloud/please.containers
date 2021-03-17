@@ -106,8 +106,8 @@ def container_inject(name:str, baseimage:str, srcs:list, destination:str, toolch
         srcs = srcs,
         cmd = " && ".join([
             f'mkdir -p {name}',
-            f'last_layer=$(ls -1 $(location {baseimage}) | cut -f1 -d"."| sort -u | head -1)',
             f'cp $(location {baseimage})/* {name}/',
+            f'last_layer=$(ls -1 {name}/ | egrep "\.tar$" | cut -f1 -d"."| sort -u -r | head -1)',
             f'layer_name=$(printf "%03d" $(expr $last_layer + 1))',
             f'$TOOLS_JARCAT t -o {name}/${layer_name}.tar --flatten --prefix={dst}',
             f'$TOOLS_ZIPPER -src {name}/${layer_name}.tar -dst {name}/${layer_name}.tar.gz',
