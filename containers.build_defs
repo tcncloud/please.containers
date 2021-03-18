@@ -157,7 +157,7 @@ def container_config(name:str, baseimage:str, timestamp:str='0', toolchain:str =
     return build_rule(
         name = name,
         visibility = visibility,
-        labels = labels,
+        labels = labels + [ 'container-config' ],
         output_dirs = [
             name
         ],
@@ -191,6 +191,7 @@ def container_push(name:str, baseimage:str, repository:str = CONFIG.DEFAULT_DOCK
 
     fqn = build_rule(
         name = f'{name}_fqn',
+        labels = labels + [ 'container-fqn' ],
         visibility = visibility,
         outs = [ fqnfile ],
         cmd = " && ".join([
