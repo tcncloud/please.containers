@@ -206,7 +206,7 @@ def container_push(name:str, baseimage:str, repository:str = CONFIG.DEFAULT_DOCK
     )
 
     return build_rule(
-        name = name,
+        name = f'{name}_push',
         visibility = visibility,
         labels = labels + [ 'container-push' ],
         srcs = [ fqn ],
