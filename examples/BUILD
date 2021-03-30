@@ -25,7 +25,7 @@ container_pull(
 
 container_flattener(
     name = 'ubuntu_flat',
-    baseimage = ":ubuntu",
+    srcs = [ ":ubuntu" ],
 )
 
 # container_inject just copies a bunch of files from another please target into a separate layer; 
@@ -41,15 +41,15 @@ container_flattener(
 
 container_inject(
     name = 'ubuntu_files',
-    baseimage = ":ubuntu_flat",
     srcs = [ ":inject" ],
+    # baseimage = ":ubuntu_flat",
     destination = "/opt/foo",
 )
 
 container_inject(
     name = 'ubuntu_files_two',
-    baseimage = ":ubuntu_files",
     srcs = [ ":inject_two" ],
+    # baseimage = ":ubuntu_files",
     destination = "/opt/bar",
 )
 
@@ -65,7 +65,12 @@ container_inject(
 # ports: []                 what to EXPOSE
 container_config(
     name = 'ubuntu_new',
-    baseimage = ":ubuntu_files_two",
+    # baseimage = ":ubuntu_files_two",
+    srcs = [
+        ":ubuntu_flat",
+        ":ubuntu_files",
+        ":ubuntu_files_two",
+    ],
     description = "Foobar image",
     image_labels = {
         "version": "v1.2.3",
@@ -90,8 +95,13 @@ container_config(
 # if the docker-credential-gcloud is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
 container_push(
     name = 'ubuntu_custom',
-    baseimage = ":ubuntu_new",
-    # image_name = "foo",                    # optional, if you want image name to be different from the rule name
+    srcs = [
+        ":ubuntu_flat",
+        ":ubuntu_files",
+        ":ubuntu_files_two",
+        ":ubuntu_new",
+    ],
+    image_name = "foo",                    # optional, if you want image name to be different from the rule name
     tag = "foobarv2",                        # optional, will use the image digest (default) an $CI_COMMIT_TAG if defined; this one will the the 3rd
     # repository = "gcr.io/tcn-cloud-dev/m", # optional, will use CONFIG.DEFAULT_DOCKER_REPO as default;
 )
