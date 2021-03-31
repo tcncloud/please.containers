@@ -176,7 +176,7 @@ def container_config(name:str, srcs:list, timestamp:str='0', toolchain:str = CON
             'layersCmd=""',
             'layerDigestsCmd=""',
             'for f in $SRCS; do if [[ $f =~ \.tar$ ]]; then layersCmd="$layersCmd -layer $f.gz,$f,$f.gz.sha256,$f.sha256"; layerDigestsCmd="$layerDigestsCmd -layerDigestFile @$f.sha256"; fi; done',
-            f'$TOOLS_CREATE_IMAGE_CONFIG -outputConfig {name}/final.config.json -outputManifest {name}/final.manifest.json {my_labels} {my_environment} {my_ports} {my_entrypoint} {my_command} -creationTime {timestamp} $layerDigestsCmd',
+            f'$TOOLS_CREATE_IMAGE_CONFIG -outputConfig {name}/final.config.json -outputManifest {name}/final.manifest.json {my_labels} {my_environment} {my_ports} {my_entrypoint} {my_command} -creationTime {timestamp} -architecture {architecture} -operatingSystem {osversion} $layerDigestsCmd',
             f'$TOOLS_DIGESTER -config {name}/final.config.json $layersCmd -manifest {name}/final.manifest.json -format Docker -dst {name}/final.digest',
             f'echo {name}/final.config.json',
             f'echo {name}/final.manifest.json',
@@ -250,3 +250,28 @@ def container_push(name:str, srcs:list, repository:str = CONFIG.DEFAULT_DOCKER_R
     )
 
 
+def container_make(name:str, srcs:list, repository:str = CONFIG.DEFAULT_DOCKER_REPO, tag:str = '', image_name:str = '', timestamp:str='0', description:str = '', image_labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list = ['PUBLIC'], labels:list=[]):
+    
+    cfg = container_config(
+        name = f'{name}_config',
+        srcs = srcs,
+        labels = labels,
+        timestamp = timestamp,
+        description = description,
+        image_labels = image_labels,
+        entrypoint = entrypoint,
+        command = command,
+        environment = environment,
+        ports = ports,
+        osversion = osversion,
+        architecture = architecture,
+    )
+
+    return container_push(
+        name = name,
+        srcs = srcs + [ cfg ],
+        labels = labels,
+        tag = tag,
+        image_name = image_name,
+        repository = repository,
+    )

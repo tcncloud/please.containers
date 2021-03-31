@@ -105,3 +105,32 @@ container_push(
     tag = "foobarv2",                        # optional, will use the image digest (default) an $CI_COMMIT_TAG if defined; this one will the the 3rd
     # repository = "gcr.io/tcn-cloud-dev/m", # optional, will use CONFIG.DEFAULT_DOCKER_REPO as default;
 )
+
+container_make(
+    name = 'ubuntu_fu',
+    srcs = [
+        ":ubuntu_flat",
+        ":ubuntu_files",
+        ":ubuntu_files_two",
+    ],
+    description = "Foobar image",
+    image_labels = {
+        "version": "v1.2.3",
+        "foo": "bar",
+        "baz": "bla",
+    },
+    environment = {
+        "FOO": "BAR",
+    },
+    entrypoint = ["/bin/bash"],
+    command = [ 
+        "-c",
+        "foo",
+    ],
+    ports = [
+        "80",
+        "443",
+    ],
+    image_name = 'ubuntu-fu',
+    tag = 'v1.2.3',
+)
