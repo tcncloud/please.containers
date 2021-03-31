@@ -93,7 +93,7 @@ def container_flattener(name:str, srcs:list, toolchain:str = CONFIG.PLEASE_CONTA
         },
     )
 
-def container_inject(name:str, srcs:list, destination:str, toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list=[], labels:list=[]):
+def container_layer(name:str, srcs:list, destination:str, toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list=[], labels:list=[]):
     dst = destination.lstrip('/')
     datefmt = '+%Y-%m-%dT%H:%M:%S%z'
     
@@ -129,8 +129,6 @@ def container_inject(name:str, srcs:list, destination:str, toolchain:str = CONFI
             'sha256': [ toolchain+'|sha256'],
             'jarcat': [ CONFIG.JARCAT_TOOL ],
         },
-        # deps = [ baseimage ],
-        # post_build = lambda name, output: [add_out(name, line) for line in output if line]
     )
 
 def container_config(name:str, srcs:list, timestamp:str='0', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, description:str = '', image_labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', visibility:list = ['PUBLIC'], labels:list=[]):
@@ -192,7 +190,6 @@ def container_config(name:str, srcs:list, timestamp:str='0', toolchain:str = CON
 # CLOUDSDK_CONFIG has to point to the $HOME/.config/gcloud directory, otherwise push will fail;
 # DOCKER_CONFIG has to point to a $HOME/.docker with configured docker credential/helper for gcr.io cases or some other auth completed already for private repos;
 # if the docker-credential-gcloud is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
-# TODO: find a way to remote the unnecessary output
 def container_push(name:str, srcs:list, repository:str = CONFIG.DEFAULT_DOCKER_REPO, tag:str = '', image_name:str = '', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list = ['PUBLIC'], labels:list=[]):
     outfile = f"{name}_run.sh"
     fqnfile = f"{name}_fqn"
