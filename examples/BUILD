@@ -74,11 +74,10 @@ container_layer(
 
 container_config(
     name = 'ubuntu_config',
-    srcs = [
-        ":ubuntu_flat",
-        ":ubuntu_files",
-        ":ubuntu_files_two",
-    ],
+    srcs = {
+        "base": [":ubuntu_flat"],
+        "layers": [":ubuntu_files", ":ubuntu_files_two" ],
+    },
     description = "Foobar image",
     image_labels = {
         "version": "v1.2.3",
@@ -110,23 +109,20 @@ container_config(
 # * any credential helper for docker has to be linked into /usr/local/bin or /usr/bin (e.g. docker-credential-gcloud)
 container_push(
     name = 'ubuntu_custom',
-    srcs = [
-        ":ubuntu_flat",
-        ":ubuntu_files",
-        ":ubuntu_files_two",
-        ":ubuntu_config",
-    ],
+    srcs = {
+        "base": [":ubuntu_flat"],
+        "layers": [":ubuntu_config",":ubuntu_files", ":ubuntu_files_two"],
+    },
     image_name = "foo",
     tag = "foobarv2",
 )
 
 container_make(
     name = 'ubuntu_fu',
-    srcs = [
-        ":ubuntu_flat",
-        ":ubuntu_files",
-        ":ubuntu_files_two",
-    ],
+    srcs = {
+        "base": [":ubuntu_flat"],
+        "layers": [":ubuntu_files", ":ubuntu_files_two"],
+    },
     description = "Foobar image",
     image_labels = {
         "version": "v1.2.3",
