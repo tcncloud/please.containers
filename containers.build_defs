@@ -103,17 +103,17 @@ def container_layer(name:str, srcs:list, destination:str, toolchain:str = CONFIG
         labels = labels,
         srcs = srcs,
         outs = [
-            f'{name}/layer.tar',
-            f'{name}/layer.tar.gz',
-            f'{name}/layer.tar.sha256',
-            f'{name}/layer.tar.gz.sha256',
+            f'{name}/{name}-layer.tar',
+            f'{name}/{name}-layer.tar.gz',
+            f'{name}/{name}-layer.tar.sha256',
+            f'{name}/{name}-layer.tar.gz.sha256',
         ],
         cmd = " && ".join([
             f'mkdir -p {name}',
             # f'layers=( $(out_locations {baseimage}) )',
             # "last_layer=$( (IFS=$'\n'; echo \"${layers[*]}\") | cut -f1 -d. | sort -n | tail -n1 )",
             # f'layer_name=$(printf "%03d" $(expr $(basename $last_layer) + 1))',
-            "layer_name=layer",
+            f"layer_name={name}-layer",
             f'$TOOLS_JARCAT t -o {name}/${layer_name}.tar --flatten --prefix={dst}',
             f'$TOOLS_ZIPPER -src {name}/${layer_name}.tar -dst {name}/${layer_name}.tar.gz',
             f'$TOOLS_SHA256 {name}/${layer_name}.tar > {name}/${layer_name}.tar.sha256',
@@ -166,8 +166,10 @@ def container_config(name:str, srcs:list, timestamp:str='0', toolchain:str = CON
         visibility = visibility,
         labels = labels + [ 'container-config' ],
         srcs = srcs,
-        output_dirs = [
-            name
+        outs = [
+            f'{name}/final.config.json',
+            f'{name}/final.manifest.json',
+            f'{name}/final.digest',
         ],
         cmd = " && ".join([
             f'mkdir -p {name}',
@@ -176,9 +178,9 @@ def container_config(name:str, srcs:list, timestamp:str='0', toolchain:str = CON
             'for f in $SRCS; do if [[ $f =~ \.tar$ ]]; then layersCmd="$layersCmd -layer $f.gz,$f,$f.gz.sha256,$f.sha256"; layerDigestsCmd="$layerDigestsCmd -layerDigestFile @$f.sha256"; fi; done',
             f'$TOOLS_CREATE_IMAGE_CONFIG -outputConfig {name}/final.config.json -outputManifest {name}/final.manifest.json {my_labels} {my_environment} {my_ports} {my_entrypoint} {my_command} -creationTime {timestamp} -architecture {architecture} -operatingSystem {osversion} $layerDigestsCmd',
             f'$TOOLS_DIGESTER -config {name}/final.config.json $layersCmd -manifest {name}/final.manifest.json -format Docker -dst {name}/final.digest',
-            f'echo {name}/final.config.json',
-            f'echo {name}/final.manifest.json',
-            f'echo {name}/final.digest',
+            # f'echo {name}/final.config.json',
+            # f'echo {name}/final.manifest.json',
+            # f'echo {name}/final.digest',
         ]),
         tools = {
             'create_image_config': [toolchain+"|create_image_config"],

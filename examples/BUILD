@@ -49,13 +49,13 @@ container_flattener(
 # * placed in the same directory; if different destinations are required, one must define multiple rules
 
 container_layer(
-    name = 'ubuntu_files',
+    name = 'mylayer',
     srcs = [ ":inject" ],
     destination = "/opt/foo",
 )
 
 container_layer(
-    name = 'ubuntu_files_two',
+    name = 'myotherlayer',
     srcs = [ ":inject_two" ],
     destination = "/opt/bar",
 )
@@ -73,11 +73,11 @@ container_layer(
 # * architecture     Optional (default = amd64).
 
 container_config(
-    name = 'ubuntu_config',
+    name = 'myimage_config',
     srcs = [
         ":ubuntu_flat",
-        ":ubuntu_files",
-        ":ubuntu_files_two",
+        ":mylayer",
+        ":myotherlayer",
     ],
     description = "Foobar image",
     image_labels = {
@@ -97,6 +97,19 @@ container_config(
         "80",
         "443",
     ],
+)
+
+container_config(
+    name = 'myotherimage_config',
+    srcs = [
+        ":ubuntu_flat",
+        ":myotherlayer",
+    ],
+    description = "Foobaz image",
+    image_labels = {
+        "version": "v3.2.1",
+    },
+    entrypoint = ["/bin/bash"],
 )
 
 # DESCRIPTION:
@@ -109,23 +122,35 @@ container_config(
 # * DOCKER_CONFIG has to point to a $HOME/.docker with configured docker credentials/helpers for private repos use-case;
 # * any credential helper for docker has to be linked into /usr/local/bin or /usr/bin (e.g. docker-credential-gcloud)
 container_push(
-    name = 'ubuntu_custom',
+    name = 'myimage',
     srcs = [
         ":ubuntu_flat",
-        ":ubuntu_files",
-        ":ubuntu_files_two",
-        ":ubuntu_config",
+        ":mylayer",
+        ":myotherlayer",
+        ":myimage_config",
     ],
     image_name = "foo",
     tag = "foobarv2",
 )
 
-container_make(
-    name = 'ubuntu_fu',
+container_push(
+    name = 'myotherimage',
     srcs = [
         ":ubuntu_flat",
-        ":ubuntu_files",
-        ":ubuntu_files_two",
+        ":myotherlayer",
+        ":myotherimage_config",
+    ],
+    image_name = "bar",
+    tag = "foobazv2",
+)
+
+
+container_make(
+    name = 'myimage_fu',
+    srcs = [
+        ":ubuntu_flat",
+        ":mylayer",
+        ":myotherlayer",
     ],
     description = "Foobar image",
     image_labels = {
@@ -145,6 +170,21 @@ container_make(
         "80",
         "443",
     ],
-    image_name = 'ubuntu-fu',
+    image_name = 'myimage',
     tag = 'v1.2.3',
+)
+
+container_make(
+    name = 'myotherimage_fu',
+    srcs = [
+        ":ubuntu_flat",
+        ":myotherlayer",
+    ],
+    description = "Foobaz image",
+    image_labels = {
+        "version": "v3.2.1",
+    },
+    entrypoint = ["/bin/bash"],
+    image_name = 'myotherimage',
+    tag = 'v3.2.1',
 )
