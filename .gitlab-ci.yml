@@ -4,6 +4,7 @@ build::puller:
   before_script:
     - curl https://get.please.build | bash
   script:
+    - ./pleasew build 
     - ./pleasew build --arch=linux_amd64 tools
     - ./pleasew build --arch=darwin_amd64 tools
     - ./pleasew build --arch=darwin_arm64 tools
