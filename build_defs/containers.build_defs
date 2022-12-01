@@ -33,7 +33,7 @@ def container_toolchain(name:str, url:str = None, version:str = "v0.0.2", hashes
         },
     )
 
-def container_pull(name: str, image: str, tag:str='latest', registry:str='index.docker.io', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list=[], labels:list=[]): 
+def container_pull(name: str, image: str, tag:str='latest', registry:str='index.docker.io', toolchain:str = CONFIG.CONTAINERS.TOOLCHAIN, visibility:list=[], labels:list=[]): 
     return build_rule(
         name = name, 
         visibility = visibility,
@@ -62,7 +62,7 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
         },
     )
 
-def container_flattener(name:str, srcs:list, toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list=[], labels:list=[]):
+def container_flattener(name:str, srcs:list, toolchain:str = CONFIG.CONTAINERS.TOOLCHAIN, visibility:list=[], labels:list=[]):
     return build_rule(
         name = name,
         visibility = visibility,
@@ -93,7 +93,7 @@ def container_flattener(name:str, srcs:list, toolchain:str = CONFIG.PLEASE_CONTA
         },
     )
 
-def container_layer(name:str, srcs:list, destination:str, toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list=[], labels:list=[]):
+def container_layer(name:str, srcs:list, destination:str, toolchain:str = CONFIG.CONTAINERS.TOOLCHAIN, visibility:list=[], labels:list=[]):
     dst = destination.lstrip('/')
     datefmt = '+%Y-%m-%dT%H:%M:%S%z'
     
@@ -131,7 +131,7 @@ def container_layer(name:str, srcs:list, destination:str, toolchain:str = CONFIG
         },
     )
 
-def container_config(name:str, srcs:list, timestamp:str='0', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, description:str = '', image_labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', visibility:list = ['PUBLIC'], labels:list=[]):
+def container_config(name:str, srcs:list, timestamp:str='0', toolchain:str = CONFIG.CONTAINERS.TOOLCHAIN, description:str = '', image_labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', visibility:list = ['PUBLIC'], labels:list=[]):
     my_labels = ''
     for l in image_labels.keys():
         v = image_labels[l]
@@ -192,7 +192,7 @@ def container_config(name:str, srcs:list, timestamp:str='0', toolchain:str = CON
 # CLOUDSDK_CONFIG has to point to the $HOME/.config/gcloud directory, otherwise push will fail;
 # DOCKER_CONFIG has to point to a $HOME/.docker with configured docker credential/helper for gcr.io cases or some other auth completed already for private repos;
 # if the docker-credential-gcloud is being used, it has to be symlinked into the limited PATH used by please - either /usr/local/bin or /usr/bin
-def container_push(name:str, srcs:list, repository:str = CONFIG.DEFAULT_DOCKER_REPO, tag:str = '', image_name:str = '', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list = ['PUBLIC'], labels:list=[]):
+def container_push(name:str, srcs:list, repository:str = CONFIG.CONTAINERS.DEFAULT_REPO, tag:str = '', image_name:str = '', toolchain:str = CONFIG.CONTAINERS.TOOLCHAIN, visibility:list = ['PUBLIC'], labels:list=[]):
     outfile = f"{name}_run.sh"
     fqnfile = f"{name}_fqn"
 
@@ -249,7 +249,7 @@ def container_push(name:str, srcs:list, repository:str = CONFIG.DEFAULT_DOCKER_R
     )
 
 
-def container_make(name:str, srcs:list, repository:str = CONFIG.DEFAULT_DOCKER_REPO, tag:str = '', image_name:str = '', timestamp:str='0', description:str = '', image_labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', toolchain:str = CONFIG.PLEASE_CONTAINERS_TOOLCHAIN, visibility:list = ['PUBLIC'], labels:list=[]):
+def container_make(name:str, srcs:list, repository:str = CONFIG.CONTAINERS.DEFAULT_REPO, tag:str = '', image_name:str = '', timestamp:str='0', description:str = '', image_labels:dict = {}, entrypoint:list = [], command:list = [], environment:dict = {}, ports:list = [], osversion:str = 'linux', architecture:str = 'amd64', toolchain:str = CONFIG.CONTAINERS.TOOLCHAIN, visibility:list = ['PUBLIC'], labels:list=[]):
     
     cfg = container_config(
         name = f'{name}_config',

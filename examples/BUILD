@@ -1,4 +1,4 @@
-subinclude('//:containers')
+subinclude('//build_defs:containers')
 
 container_toolchain(name = 'toolchain', use_internal=True)
 
