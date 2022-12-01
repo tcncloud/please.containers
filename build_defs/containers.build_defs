@@ -50,11 +50,6 @@ def container_pull(name: str, image: str, tag:str='latest', registry:str='index.
         ]),
         output_dirs = [ name ],
         building_description = "Pulling image ...",
-        pass_env = [
-            "CLOUDSDK_CONFIG",
-            "DOCKER_CONFIG",
-            "CLOUDSDK_ACTIVE_CONFIG_NAME",
-        ],
         tools = {
             'puller': [toolchain+"|puller"],
             'join_layers' : [toolchain + "|join_layers"],
@@ -225,7 +220,6 @@ def container_push(name:str, srcs:list, repository:str = CONFIG.CONTAINERS.DEFAU
             "export USER=$(whoami)",
             "export HOME=$(eval echo ~$(whoami))",
             "export DOCKER_CONFIG=$HOME/.docker",
-            f"$TOOLS_PULLER -name {registry}/{image}:{tag} -directory {name} -os linux -architecture amd64", 
             f"outfile={outfile}",
             "prefix=plz-out/gen",
             "tarfiles=\"\"",
