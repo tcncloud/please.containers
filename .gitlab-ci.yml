@@ -1,11 +1,17 @@
 build::puller:
-  image: golang:1.15.7
+  image: golang:1.19.1
   stage: build
   script:
-    - ./pleasew build 
+    - ./pleasew build --arch=linux_amd64 tools
+    - ./pleasew build --arch=darwin_amd64 tools
+    - ./pleasew build --arch=darwin_arm64 tools
+    - mkdir -p dist
+    - cp $(./pleasew query outputs --arch=linux_amd64 tools) dist/ 
+    - cp $(./pleasew query outputs --arch=darwin_amd64 tool) dist/
+    - cp $(./pleasew query outputs --arch=darwin_arm64 tool) dist/
   artifacts:
     paths:
-      - plz-out/gen/tools/tools.tar.gz
+      - dist
     expire_in: 24 hours
 
 
