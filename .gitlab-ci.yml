@@ -1,6 +1,8 @@
 build::puller:
   image: golang:1.19.1
   stage: build
+  before_script:
+    - curl https://get.please.build | bash
   script:
     - ./pleasew build --arch=linux_amd64 tools
     - ./pleasew build --arch=darwin_amd64 tools
