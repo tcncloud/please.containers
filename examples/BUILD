@@ -30,6 +30,13 @@ container_pull(
     tag = '20.04',
 )
 
+# pull private image from private registry
+container_pull(
+    name = 'cibuild',
+    image = 'm/ci-please/build',
+    registry = "registry.tcncloud.net",
+    tag = '58'
+)
 # DESCRIPTION: 
 # This rule's srcs MUST be a multi-layer container_pull rule; it creates a container one with a single merged layer
 
