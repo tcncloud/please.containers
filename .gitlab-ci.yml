@@ -29,4 +29,4 @@ deploy:
     - curl -Lo - https://github.com/tcnksm/ghr/releases/download/v0.16.0/ghr_v0.16.0_linux_amd64.tar.gz | tar zxf -
     - mv ghr_v0.16.0_linux_amd64/ghr . && rm -rf ghr_v0.16.0_linux_amd64
   script:
-    - for i in dist/*; do ./ghr -u tcncloud -r please.containers -r ${GITHUB_TOKEN} -replace $CI_COMMIT_TAG $i; done
+    - ./ghr -u tcncloud -r please.containers -t ${GITHUB_TOKEN} -replace $CI_COMMIT_TAG dist
