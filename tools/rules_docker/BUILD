@@ -3,7 +3,7 @@ package(default_visibility=['PUBLIC'])
 go_get(
     name = 'rules_docker',
     get = 'github.com/bazelbuild/rules_docker',
-    revision = 'v0.15.0',
+    revision = 'v0.25.0',
     install = ['container/go/pkg/...'],
     deps = [
         '//third_party/go/github.com/google:go-containerregistry',
