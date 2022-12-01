@@ -1,5 +1,5 @@
 go_toolchain(
     name ='toolchain',
-    version = '1.15.7',
+    version = '1.19.1',
     visibility = ['PUBLIC']
 )
