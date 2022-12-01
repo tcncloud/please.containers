@@ -1,6 +1,6 @@
 ; Please config file
 [please]
-version = 15.17.0
+version = 16.25.1
 
 
 [build]
