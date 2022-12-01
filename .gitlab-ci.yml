@@ -9,8 +9,8 @@ build::puller:
     - ./pleasew build --arch=darwin_arm64 tools
     - mkdir -p dist
     - cp $(./pleasew query outputs --arch=linux_amd64 tools) dist/ 
-    - cp $(./pleasew query outputs --arch=darwin_amd64 tool) dist/
-    - cp $(./pleasew query outputs --arch=darwin_arm64 tool) dist/
+    - cp $(./pleasew query outputs --arch=darwin_amd64 tools) dist/
+    - cp $(./pleasew query outputs --arch=darwin_arm64 tools) dist/
   artifacts:
     paths:
       - dist
