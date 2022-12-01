@@ -1,7 +1,21 @@
 ; Please config file
-[please]
-version = 16.25.1
+[Plugin "containers"]
+toolchain = //examples:toolchain
+DefaultRepo = gcr.io/tcn/containers
 
+[PluginDefinition]
+name = containers 
+
+[PluginConfig "toolchain"]
+ConfigKey = toolchain
+Repeatable = false 
+Inherit = true 
+DefaultValue = //examples:toolchain
+
+[PluginConfig "default_repo"]
+ConfigKey = DefaultRepo 
+Repeatable = false
+Inherit = true
 
 [build]
 lang = en_US.UTF-8
@@ -9,9 +23,6 @@ passenv = DOCKER_HOST
 passenv = CI_COMMIT_TAG
 timeout = 600
 
-[buildconfig]
-default-docker-repo = gcr.io/tcn-cloud-dev/m
-please-containers-toolchain = //examples:toolchain
 
 [parse]
 buildfilename = BUILD.plz
