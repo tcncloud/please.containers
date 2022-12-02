@@ -1,8 +1,4 @@
 ; Please config file
-[Plugin "containers"]
-toolchain = //examples:toolchain
-DefaultRepo = gcr.io/tcn/containers
-
 [PluginDefinition]
 name = containers 
 
@@ -32,3 +28,7 @@ gitfunctions = True
 
 [go]
 gotool = //third_party/go:toolchain|go
+
+[Plugin "containers"]
+toolchain = //examples:toolchain
+DefaultRepo = gcr.io/tcn/containers

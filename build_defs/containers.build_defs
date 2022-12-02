@@ -209,7 +209,7 @@ def container_push(name:str, srcs:list, repository:str = CONFIG.CONTAINERS.DEFAU
     )
 
     return build_rule(
-        name = f'{name}_push',
+        name = f'{name}',
         visibility = visibility,
         labels = labels + [ 'container-push' ],
         srcs = {
